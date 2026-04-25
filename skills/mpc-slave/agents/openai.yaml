@@ -1,0 +1,4 @@
+interface:
+  display_name: "MPC Slave"
+  short_description: "Advance one MPC task inside a worktree / 在当前 worktree 内推进单个 MPC 任务"
+  default_prompt: "Identify the MPC task from the current worktree directory name and git branch, update that task inside `.mpc/mpc.md`, and move it to `完成` only after explicit approval when the evidence is ready. 从当前 worktree 的目录名与 git 分支名识别 MPC 子任务，更新 `.mpc/mpc.md` 中该任务的进度，并在证据充分且得到确认后推进到 `完成`。"

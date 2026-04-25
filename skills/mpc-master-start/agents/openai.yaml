@@ -1,0 +1,4 @@
+interface:
+  display_name: "MPC Master Start"
+  short_description: "Create MPC subtasks from a plan file / 从计划文件创建 MPC 子任务"
+  default_prompt: "Read a requirement or plan document, split it into MPC subtasks, write or append them to `.mpc/mpc.md`, and suggest worktree commands. 读取需求或计划文档，将其拆分为 MPC 子任务，写入或追加到 `.mpc/mpc.md`，并输出建议的 worktree 命令。"

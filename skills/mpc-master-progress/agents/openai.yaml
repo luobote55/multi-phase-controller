@@ -1,0 +1,4 @@
+interface:
+  display_name: "MPC Master Progress"
+  short_description: "Read MPC task status without writing / 只读查看 MPC 任务状态"
+  default_prompt: "Read `.mpc/mpc.md` in read-only mode and show either the full task overview or one task's detailed status across the active and archive files. 以只读方式读取 `.mpc/mpc.md`，展示全部任务总览，或查询单个任务在活动区与归档区中的详细状态。"

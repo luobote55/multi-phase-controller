@@ -1,0 +1,4 @@
+interface:
+  display_name: "MPC Master Regress"
+  short_description: "Review a completed MPC task / 对已完成的 MPC 子任务执行主控回归"
+  default_prompt: "Read one MPC subtask in the `完成` state, collect regression evidence, present a recommendation first, and only update it to `已回归` after explicit approval. 读取一个处于 `完成` 状态的 MPC 子任务，先形成回归证据和建议结论，在调用者确认通过后再把状态更新为 `已回归`。"
