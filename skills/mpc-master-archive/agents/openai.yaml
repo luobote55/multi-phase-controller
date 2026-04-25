@@ -1,4 +1,4 @@
 interface:
   display_name: "MPC Master Archive"
   short_description: "Archive a regressed MPC task / 归档已回归的 MPC 子任务"
-  default_prompt: "Read one MPC subtask in the `已回归` state, move it from `.mpc/mpc.md` to `.mpc/mpc-archive.md`, and update both archive fields and file metadata. 读取一个状态为 `已回归` 的 MPC 子任务，将其从 `.mpc/mpc.md` 移动到 `.mpc/mpc-archive.md`，并同步更新归档字段与文件头部元信息。"
+  default_prompt: "Resolve the shared controller directory as `~/.mpc/{git-repo-name}/`, read one MPC subtask in the `已回归` state, move it from `~/.mpc/{git-repo-name}/mpc.md` to `~/.mpc/{git-repo-name}/mpc_archive.md`, update both archive fields and file metadata, and then render the refreshed task tree with the archived node still visible. 以 Git 仓库名解析共享控制目录 `~/.mpc/{工程项目名}/`，读取一个状态为 `已回归` 的 MPC 子任务，将其从 `~/.mpc/{工程项目名}/mpc.md` 移动到 `~/.mpc/{工程项目名}/mpc_archive.md`，同步更新归档字段与文件头部元信息，并在结尾输出刷新后的任务树且保留已归档节点。"

@@ -4,7 +4,7 @@
 
 This repository is a small add-on skill pack for [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done). It adds a lightweight multi-phase controller workflow for Codex and similar agents that need to coordinate one main controller session with several task-specific worktrees.
 
-The controller is built around `.mpc/mpc.md`, `.mpc/mpc-archive.md`, and `.mpc/mpc.lock`. The goal is to make subtask splitting, progress tracking, regression, and archiving predictable across parallel worktrees without turning this repo into a replacement for GSD itself.
+The controller is built around `~/.mpc/{git-repo-name}/mpc.md`, `~/.mpc/{git-repo-name}/mpc_archive.md`, and `~/.mpc/{git-repo-name}/.lock.md`. All worktrees from the same Git repository share that directory, and the folder name is derived from the Git repository name rather than the current worktree directory. The goal is to make subtask splitting, progress tracking, regression, and archiving predictable across parallel worktrees without turning this repo into a replacement for GSD itself.
 
 ## Highlights
 
@@ -18,7 +18,7 @@ The controller is built around `.mpc/mpc.md`, `.mpc/mpc-archive.md`, and `.mpc/m
 - `mpc-master-start`: split one requirement or plan document into MPC subtasks and suggest worktree commands
 - `mpc-master-progress`: show a read-only overview of active or archived task status
 - `mpc-master-regress`: review one completed MPC task and move it to `已回归` after explicit approval
-- `mpc-master-archive`: move one regressed task from `.mpc/mpc.md` to `.mpc/mpc-archive.md`
+- `mpc-master-archive`: move one regressed task from `~/.mpc/{git-repo-name}/mpc.md` to `~/.mpc/{git-repo-name}/mpc_archive.md`
 - `mpc-slave`: run inside one worktree and advance exactly one task through the worker-side state machine
 
 ## Repository layout
@@ -67,7 +67,7 @@ Recommended installation set:
 ## How to use
 
 1. Prepare a requirement or plan document in the target project repository.
-2. Run `/mpc-master-start path/to/plan.md` to create subtasks inside `.mpc/mpc.md`.
+2. Run `/mpc-master-start path/to/plan.md` to create subtasks inside `~/.mpc/{git-repo-name}/mpc.md`.
 3. Create the suggested git worktrees manually.
 4. In each worktree, run `/mpc-slave` to update progress and propose completion when ready.
 5. In the main controller session, run `/mpc-master-progress` to inspect the whole board or one task.
@@ -78,17 +78,17 @@ Recommended installation set:
 
 These files belong in the target project that uses the skills, not in this skill repository:
 
-- `.mpc/mpc.md`
-- `.mpc/mpc-archive.md`
-- `.mpc/mpc.lock`
+- `~/.mpc/{git-repo-name}/mpc.md`
+- `~/.mpc/{git-repo-name}/mpc_archive.md`
+- `~/.mpc/{git-repo-name}/.lock.md`
 
 ## Recommendations
 
 - Keep task name, worktree directory name, and branch name identical.
-- Let only the defined writer skills modify `.mpc/` files.
+- Let only the defined writer skills modify files under `~/.mpc/{git-repo-name}/`.
 - Use one subtask per worktree.
 - Treat this repo as a companion to GSD, not a replacement for GSD.
-- Do not commit generated `.mpc/` runtime state into this repository.
+- Do not copy generated runtime state from `~/.mpc/{git-repo-name}/` into this repository.
 
 ## Publishing notes
 

@@ -4,7 +4,7 @@
 
 这个仓库是对 [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done) 的一个小规模补充 skill 包。它提供了一套轻量的多阶段控制器工作流，用来协调一个主控会话和多个绑定在不同 worktree 上的子任务会话。
 
-控制核心围绕 `.mpc/mpc.md`、`.mpc/mpc-archive.md` 和 `.mpc/mpc.lock` 展开，目标是在并行 worktree 场景下，让子任务拆分、进度推进、回归确认和归档都更稳定、更可追踪，而不是替代 GSD 本身。
+控制核心围绕 `~/.mpc/{git仓库名}/mpc.md`、`~/.mpc/{git仓库名}/mpc_archive.md` 和 `~/.mpc/{git仓库名}/.lock.md` 展开。同一个 Git 仓库下的所有 worktree 共享这一目录，目录名取 Git 仓库名字，而不是当前 worktree 目录名。目标是在并行 worktree 场景下，让子任务拆分、进度推进、回归确认和归档都更稳定、更可追踪，而不是替代 GSD 本身。
 
 ## 特点
 
@@ -18,7 +18,7 @@
 - `mpc-master-start`：把一个需求或计划文档拆成 MPC 子任务，并给出 worktree 建议命令
 - `mpc-master-progress`：只读查看活动任务或归档任务状态
 - `mpc-master-regress`：对已完成的单个 MPC 子任务做主控回归，并在确认后推进到 `已回归`
-- `mpc-master-archive`：把一个已回归任务从 `.mpc/mpc.md` 移动到 `.mpc/mpc-archive.md`
+- `mpc-master-archive`：把一个已回归任务从 `~/.mpc/{git仓库名}/mpc.md` 移动到 `~/.mpc/{git仓库名}/mpc_archive.md`
 - `mpc-slave`：在单个 worktree 内推进一个子任务的执行状态
 
 ## 仓库结构
@@ -67,7 +67,7 @@ https://github.com/luobote55/multi-phase-controller
 ## 使用说明
 
 1. 在目标项目仓库里准备一个需求或计划文档。
-2. 运行 `/mpc-master-start path/to/plan.md`，把子任务写入 `.mpc/mpc.md`。
+2. 运行 `/mpc-master-start path/to/plan.md`，把子任务写入 `~/.mpc/{git仓库名}/mpc.md`。
 3. 手动创建建议的 git worktree。
 4. 在每个子任务 worktree 中运行 `/mpc-slave`，持续推进状态和进度。
 5. 在主控会话中运行 `/mpc-master-progress`，查看总览或单任务详情。
@@ -78,17 +78,17 @@ https://github.com/luobote55/multi-phase-controller
 
 下面这些文件属于“使用这些 skills 的目标项目”，不属于本 skill 仓库本身：
 
-- `.mpc/mpc.md`
-- `.mpc/mpc-archive.md`
-- `.mpc/mpc.lock`
+- `~/.mpc/{git仓库名}/mpc.md`
+- `~/.mpc/{git仓库名}/mpc_archive.md`
+- `~/.mpc/{git仓库名}/.lock.md`
 
 ## 其他建议
 
 - 保持任务名、worktree 目录名、分支名三者完全一致。
-- 只让定义好的写入型 skills 修改 `.mpc/` 文件。
+- 只让定义好的写入型 skills 修改 `~/.mpc/{git仓库名}/` 下的文件。
 - 一个 worktree 只承载一个子任务。
 - 把这个仓库当作 GSD 的补充，不要把它当成 GSD 的替代品。
-- 不要把运行时生成的 `.mpc/` 状态文件提交回这个 skill 仓库。
+- 不要把运行时生成的 `~/.mpc/{git仓库名}/` 状态文件拷回或提交到这个 skill 仓库。
 
 ## 发布说明
 
