@@ -1,3 +1,5 @@
+**English** · [简体中文](README.zh-CN.md)
+
 # Multi-Phase Controller Skills for Codex
 
 This repository is a small add-on skill pack for [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done). It adds a lightweight multi-phase controller workflow for Codex and similar agents that need to coordinate one main controller session with several task-specific worktrees.

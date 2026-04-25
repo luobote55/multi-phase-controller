@@ -1,3 +1,5 @@
+[English](README.md) · **简体中文**
+
 # 面向 Codex 的 Multi-Phase Controller Skills
 
 这个仓库是对 [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done) 的一个小规模补充 skill 包。它提供了一套轻量的多阶段控制器工作流，用来协调一个主控会话和多个绑定在不同 worktree 上的子任务会话。
