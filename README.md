@@ -4,7 +4,7 @@
 
 This repository is a small add-on skill pack for [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done). It adds a lightweight multi-phase controller workflow for Codex and similar agents that need to coordinate one main controller session with several task-specific conversations inside the same repository directory.
 
-The controller is built around `~/.mpc/{git-repo-name}/mpc.md`, `~/.mpc/{git-repo-name}/mpc_archive.md`, and `~/.mpc/{git-repo-name}/.lock.md`. The folder name is derived from the Git repository name rather than the current checkout path. The goal is to make subtask splitting, progress tracking, regression, and archiving predictable across parallel conversations without turning this repo into a replacement for GSD itself.
+The controller is built around `<repo-root>/.mpc/mpc.md`, `<repo-root>/.mpc/mpc_archive.md`, and `<repo-root>/.mpc/.lock.md`. The controller directory always lives under the current project's Git repository root at `./.mpc/`, even when a skill is triggered from a subdirectory. The goal is to make subtask splitting, progress tracking, regression, and archiving predictable across parallel conversations without turning this repo into a replacement for GSD itself.
 
 ## Highlights
 
@@ -18,7 +18,7 @@ The controller is built around `~/.mpc/{git-repo-name}/mpc.md`, `~/.mpc/{git-rep
 - `mpc-master-start`: split one requirement or plan document into MPC subtasks and suggest the first execution wave
 - `mpc-master-progress`: show a read-only overview of active or archived task status
 - `mpc-master-regress`: review one completed MPC task and move it to `已回归` after explicit approval
-- `mpc-master-archive`: move one regressed task from `~/.mpc/{git-repo-name}/mpc.md` to `~/.mpc/{git-repo-name}/mpc_archive.md`
+- `mpc-master-archive`: move one regressed task from `<repo-root>/.mpc/mpc.md` to `<repo-root>/.mpc/mpc_archive.md`
 - `mpc-slave`: advance exactly one explicit task through the worker-side state machine from the shared repository directory
 
 ## Repository layout
@@ -67,7 +67,7 @@ Recommended installation set:
 ## How to use
 
 1. Prepare a requirement or plan document in the target project repository.
-2. Run `/mpc-master-start path/to/plan.md` to create subtasks inside `~/.mpc/{git-repo-name}/mpc.md`.
+2. Run `/mpc-master-start path/to/plan.md` to create subtasks inside `<repo-root>/.mpc/mpc.md`.
 3. Open one conversation per first-wave task and run `/mpc-slave task_name`.
 4. Continue each task in its own conversation. Use `/mpc-slave task_name` again whenever you want to refresh progress or propose completion.
 5. In the main controller session, run `/mpc-master-progress` to inspect the whole board or one task.
@@ -76,20 +76,20 @@ Recommended installation set:
 
 ## Runtime files
 
-These files belong in the target project that uses the skills, not in this skill repository:
+These files belong under the target project's repo-root `.mpc/` directory, not inside the published skill sources unless this repository itself is the target project:
 
-- `~/.mpc/{git-repo-name}/mpc.md`
-- `~/.mpc/{git-repo-name}/mpc_archive.md`
-- `~/.mpc/{git-repo-name}/.lock.md`
+- `<repo-root>/.mpc/mpc.md`
+- `<repo-root>/.mpc/mpc_archive.md`
+- `<repo-root>/.mpc/.lock.md`
 
 ## Recommendations
 
-- Keep all controller files under `~/.mpc/{git-repo-name}/`; do not create a repository-local `.mpc/`.
-- Let only the defined writer skills modify files under `~/.mpc/{git-repo-name}/`.
+- Keep all controller files under the target project's repo-root `.mpc/` directory.
+- Let only the defined writer skills modify files under `<repo-root>/.mpc/`.
 - Use one active conversation per task at a time.
 - Split tasks conservatively: if two tasks touch the same file, core module, route registry, dependency manifest, generated artifact, or shared export surface, model them as serial tasks instead of parallel tasks.
 - Treat this repo as a companion to GSD, not a replacement for GSD.
-- Do not copy generated runtime state from `~/.mpc/{git-repo-name}/` into this repository.
+- Keep generated `.mpc/` runtime state out of published skill sources; this repository ignores `.mpc/` by default.
 
 ## Publishing notes
 

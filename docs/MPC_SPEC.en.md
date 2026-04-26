@@ -10,23 +10,23 @@ This document defines the behavior contract for the following five skills:
 - `mpc-master-archive`
 - `mpc-slave`
 
-These skills form a small multi-phase controller layer on top of normal GSD-style work. The controller is centered on `~/.mpc/{project-name}/mpc.md` and `~/.mpc/{project-name}/mpc_archive.md`, so a main controller session and several worker conversations inside the same repository directory can coordinate without losing task state. `project-name` is always the Git repository name, not the current checkout path.
+These skills form a small multi-phase controller layer on top of normal GSD-style work. The controller is centered on `<repo-root>/.mpc/mpc.md` and `<repo-root>/.mpc/mpc_archive.md`, so a main controller session and several worker conversations inside the same repository directory can coordinate without losing task state. `repo-root` is always the current project's Git repository root, not the caller's current subdirectory.
 
 This document is a behavior spec, not a marketing page.
 
 ## Managed files
 
-- Live controller file: `~/.mpc/{project-name}/mpc.md`
-- Archive file: `~/.mpc/{project-name}/mpc_archive.md`
-- Lock file: `~/.mpc/{project-name}/.lock.md`
+- Live controller file: `<repo-root>/.mpc/mpc.md`
+- Archive file: `<repo-root>/.mpc/mpc_archive.md`
+- Lock file: `<repo-root>/.mpc/.lock.md`
 
 Rules:
 
-- These files live in a shared directory keyed by the Git repository name, and all conversations for the same repository use the same controller files.
+- These files live under the current project's repo-root `.mpc/` directory, and all conversations for the same repository use the same controller files.
 - The names `mpc.md`, `mpc_archive.md`, and `.lock.md` are fixed.
 - `.lock.md` is a temporary write lock and is never created by read-only skills.
 - If the files do not exist yet, `mpc-master-start` or the first archive action may create the minimal skeleton.
-- Do not create a repository-local `.mpc/`.
+- Always resolve the current project's Git repository root first, then use that root's `.mpc/` directory.
 
 ## Core principles
 
@@ -44,7 +44,7 @@ Rules:
 - `mpc.md` must use a fixed field order. No field may be omitted. Empty values must be recorded as `待填写` or `无`.
 - Read-only actions must stay read-only. State transitions must be explicit.
 - All timestamps must use `YYYY-MM-DD HH:mm:ss +08:00`.
-- Every write action except `mpc-master-progress` must hold `~/.mpc/{project-name}/.lock.md`.
+- Every write action except `mpc-master-progress` must hold `<repo-root>/.mpc/.lock.md`.
 
 ## Task state machine
 
@@ -92,19 +92,19 @@ Additional rules:
 - `任务总数` means the number of task blocks in the file.
 - Archiving is a move, not a copy.
 - After archiving:
-  - the task is removed from `~/.mpc/{project-name}/mpc.md`
-  - the task is appended to `~/.mpc/{project-name}/mpc_archive.md`
+  - the task is removed from `<repo-root>/.mpc/mpc.md`
+  - the task is appended to `<repo-root>/.mpc/mpc_archive.md`
   - `状态` remains `已回归`
   - `归档状态` becomes `已归档`
   - `归档时间` is filled in
-- Queries and dependency checks must search the union of `~/.mpc/{project-name}/mpc.md` and `~/.mpc/{project-name}/mpc_archive.md`, with the active file checked first.
+- Queries and dependency checks must search the union of `<repo-root>/.mpc/mpc.md` and `<repo-root>/.mpc/mpc_archive.md`, with the active file checked first.
 - If the same task identifier exists in both files, that is a hard data error.
 
 ## Concurrent write rules
 
 Even though real contention is usually low, all writes must still be serialized.
 
-1. Every write action except `mpc-master-progress` must acquire `~/.mpc/{project-name}/.lock.md`.
+1. Every write action except `mpc-master-progress` must acquire `<repo-root>/.mpc/.lock.md`.
 2. The lock file must record at least:
    - owner skill name
    - target task or task list
@@ -112,7 +112,7 @@ Even though real contention is usually low, all writes must still be serialized.
    - lock timestamp
 3. If the lock already exists, retry every 2 seconds for up to 60 seconds.
 4. If the lock survives more than 10 minutes, treat it as stale and stop with an explicit error.
-5. After taking the lock, reread the latest `~/.mpc/{project-name}/mpc.md`. Read `~/.mpc/{project-name}/mpc_archive.md` too when needed.
+5. After taking the lock, reread the latest `<repo-root>/.mpc/mpc.md`. Read `<repo-root>/.mpc/mpc_archive.md` too when needed.
 6. Except for `mpc-master-start`, each write transaction may modify only one task block plus file-level metadata.
 7. `mpc-master-start` may append multiple new task blocks in one transaction and may minimally update the direct predecessor task's `后序子任务`.
 8. Unrelated task content, order, and prompts must not be rewritten.
@@ -152,7 +152,7 @@ Responsibilities:
 
 - Read a requirement or plan document.
 - Analyze which parts can run in parallel and which must be serialized.
-- Create new task blocks in `~/.mpc/{project-name}/mpc.md`.
+- Create new task blocks in `<repo-root>/.mpc/mpc.md`.
 - Generate:
   - task identifiers
   - predecessor and successor links
@@ -160,7 +160,7 @@ Responsibilities:
   - start prompts
   - completion prompts
 - Write `执行模式 = single_dir` and `执行目录 = .` for every new task.
-- Create `~/.mpc/{project-name}/` and the minimal `mpc.md` skeleton when needed.
+- Create `<repo-root>/.mpc/` and the minimal `mpc.md` skeleton when needed.
 - Suggest the first executable wave, but never execute anything automatically.
 
 Required output:
@@ -183,7 +183,7 @@ Responsibilities:
 
 - Read only.
 - Show a summary of all active tasks, or show one task in detail.
-- Search `~/.mpc/{project-name}/mpc.md` first and `~/.mpc/{project-name}/mpc_archive.md` second.
+- Search `<repo-root>/.mpc/mpc.md` first and `<repo-root>/.mpc/mpc_archive.md` second.
 
 Display rules:
 
@@ -226,7 +226,7 @@ Manual invocation example:
 Responsibilities:
 
 - Work on one task that is currently `已回归`.
-- Move that task from `~/.mpc/{project-name}/mpc.md` to `~/.mpc/{project-name}/mpc_archive.md`.
+- Move that task from `<repo-root>/.mpc/mpc.md` to `<repo-root>/.mpc/mpc_archive.md`.
 - Create a minimal archive file if necessary.
 
 ### `mpc-slave`
@@ -241,7 +241,7 @@ Responsibilities:
 
 - Require one explicit `任务标识` argument.
 - Never auto-detect the task from the current directory, Git branch, or recent changes.
-- Use `~/.mpc/{project-name}/mpc.md` as the controller file.
+- Use `<repo-root>/.mpc/mpc.md` as the controller file.
 - Only handle `未开始 -> 进行中 -> 完成`.
 
 Behavior by state:
@@ -281,8 +281,8 @@ The design is considered valid when all of the following work reliably:
 - Do not let `mpc-slave` jump from `进行中` straight to `已回归`.
 - Do not let `mpc-master-progress` perform regression or archive actions.
 - Do not archive tasks that have not already passed regression.
-- Do not write controller files without holding `~/.mpc/{project-name}/.lock.md`.
-- Do not decide that a predecessor task is missing by checking only `~/.mpc/{project-name}/mpc.md`.
+- Do not write controller files without holding `<repo-root>/.mpc/.lock.md`.
+- Do not decide that a predecessor task is missing by checking only `<repo-root>/.mpc/mpc.md`.
 - Do not rewrite unrelated task blocks while updating one task.
 - Do not omit fixed fields and break downstream parsing.
 - Do not allow `mpc-slave` to run without an explicit task name or to guess one automatically.

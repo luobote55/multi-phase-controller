@@ -1,26 +1,26 @@
 ---
 name: mpc-master-progress
-description: 只读查看 MPC 子任务状态总览或单个任务详情。在用户调用 `/mpc-master-progress`、要求查看 `~/.mpc/{工程项目名}/mpc.md` 的全部任务进度、或查询某个任务当前或归档状态但绝不能修改任何控制文件时使用。Use when Codex needs a read-only overview of MPC task status or the details of one active or archived task inside `~/.mpc/{project-name}/` without modifying any controller files.
+description: 只读查看 MPC 子任务状态总览或单个任务详情。在用户调用 `/mpc-master-progress`、要求查看 `<repo-root>/.mpc/mpc.md` 的全部任务进度、或查询某个任务当前或归档状态但绝不能修改任何控制文件时使用。Use when Codex needs a read-only overview of MPC task status or the details of one active or archived task inside `<repo-root>/.mpc/` without modifying any controller files.
 ---
 
 # MPC Master Progress
 
 ## 概览
 
-只读查看 MPC 控制器状态。先按 Git 仓库名字解析共享控制目录 `~/.mpc/{工程项目名}/`，读取 `~/.mpc/{工程项目名}/mpc.md`，并在需要查询单个任务或渲染完整任务树时按规则补查 `~/.mpc/{工程项目名}/mpc_archive.md`。绝不创建锁文件，绝不修改任何控制文件。
+只读查看 MPC 控制器状态。先解析当前项目的 Git 仓库根目录，再读取 `<repo-root>/.mpc/mpc.md`，并在需要查询单个任务或渲染完整任务树时按规则补查 `<repo-root>/.mpc/mpc_archive.md`。绝不创建锁文件，绝不修改任何控制文件。
 
 ## 只读约束
 
-- 保持纯只读模式，不要写入 `~/.mpc/{工程项目名}/mpc.md`、`~/.mpc/{工程项目名}/mpc_archive.md`、`~/.mpc/{工程项目名}/.lock.md`。
+- 保持纯只读模式，不要写入 `<repo-root>/.mpc/mpc.md`、`<repo-root>/.mpc/mpc_archive.md`、`<repo-root>/.mpc/.lock.md`。
 - 如果控制文件不存在，直接报告“控制器尚未初始化”，不要顺手创建骨架。
-- 单任务查询时，先查 `~/.mpc/{工程项目名}/mpc.md`，未命中再查 `~/.mpc/{工程项目名}/mpc_archive.md`。
+- 单任务查询时，先查 `<repo-root>/.mpc/mpc.md`，未命中再查 `<repo-root>/.mpc/mpc_archive.md`。
 - 如果同名 `任务标识` 同时出现在活动文件与归档文件中，立即报告数据异常并停止。
 
 ## 查询模式
 
 ### 无参数
 
-读取 `~/.mpc/{工程项目名}/mpc.md` 并输出全部活动子任务的状态总览。如果 `~/.mpc/{工程项目名}/mpc_archive.md` 存在，也一并读取，用于渲染完整当前任务树。总览至少包含：
+读取 `<repo-root>/.mpc/mpc.md` 并输出全部活动子任务的状态总览。如果 `<repo-root>/.mpc/mpc_archive.md` 存在，也一并读取，用于渲染完整当前任务树。总览至少包含：
 
 - `任务标识`
 - `状态`
@@ -45,7 +45,7 @@ description: 只读查看 MPC 子任务状态总览或单个任务详情。在�
 ## 任务树输出
 
 - 无论是无参数总览还是单任务查询，命令结束时都必须输出一次最新任务树。
-- 任务树基于 `~/.mpc/{工程项目名}/mpc.md` 与 `~/.mpc/{工程项目名}/mpc_archive.md` 的并集生成；如果归档文件不存在，可以忽略。
+- 任务树基于 `<repo-root>/.mpc/mpc.md` 与 `<repo-root>/.mpc/mpc_archive.md` 的并集生成；如果归档文件不存在，可以忽略。
 - `前序子任务` 与 `后序子任务` 在存在多个任务时，统一按 `、` 拆分；`前序子任务 = 无` 的任务视为根节点。
 - 子节点顺序严格使用父任务 `后序子任务` 中的顺序；根节点顺序优先保持 `mpc.md` 中的原始顺序。
 - 树状图字符统一使用 `├─`、`└─`、`│  ` 与 3 个空格缩进。
@@ -62,10 +62,10 @@ description: 只读查看 MPC 子任务状态总览或单个任务详情。在�
 
 - 无参数模式下优先输出任务树，再补充必要的状态摘要，不要写成长篇解释。
 - 单任务查询时优先展示当前最有用的字段，不必重复全部原始字段；详情之后补输出最新任务树。
-- 如果任务已归档，明确说明信息来自 `~/.mpc/{工程项目名}/mpc_archive.md`。
+- 如果任务已归档，明确说明信息来自 `<repo-root>/.mpc/mpc_archive.md`。
 
 ## 禁止事项
 
 - 不要因为“顺手补全信息”而写回任何字段。
 - 不要承担回归或归档动作。
-- 不要在未命中 `~/.mpc/{工程项目名}/mpc.md` 时直接判定任务不存在，必须继续查 `~/.mpc/{工程项目名}/mpc_archive.md`。
+- 不要在未命中 `<repo-root>/.mpc/mpc.md` 时直接判定任务不存在，必须继续查 `<repo-root>/.mpc/mpc_archive.md`。

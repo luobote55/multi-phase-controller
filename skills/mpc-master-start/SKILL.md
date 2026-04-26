@@ -1,20 +1,20 @@
 ---
 name: mpc-master-start
-description: 将单个需求或计划文档拆分为 MPC 子任务并初始化或追加写入 `~/.mpc/{工程项目名}/mpc.md`。在用户调用 `/mpc-master-start`、要求从计划文件生成子任务、追加新的 MPC 任务链、或希望得到首轮可执行任务及对应 `/mpc-slave <任务标识>` 启动命令时使用。Use when Codex needs to split one plan document into MPC subtasks, append a new MPC task chain, or suggest first-wave `/mpc-slave <task-name>` commands in the shared controller directory `~/.mpc/{project-name}/`.
+description: 将单个需求或计划文档拆分为 MPC 子任务并初始化或追加写入 `<repo-root>/.mpc/mpc.md`。在用户调用 `/mpc-master-start`、要求从计划文件生成子任务、追加新的 MPC 任务链、或希望得到首轮可执行任务及对应 `/mpc-slave <任务标识>` 启动命令时使用。Use when Codex needs to split one plan document into MPC subtasks, append a new MPC task chain, or suggest first-wave `/mpc-slave <task-name>` commands in the repo-root controller directory `<repo-root>/.mpc/`.
 ---
 
 # MPC Master Start
 
 ## 概览
 
-读取一个需求计划文件，拆分出可执行的 MPC 子任务，并把结果写入 `~/.mpc/{工程项目名}/mpc.md`。控制文件目录固定使用共享路径 `~/.mpc/{工程项目名}/`，其中 `工程项目名` 固定取 Git 仓库名字；不要在当前工程目录下寻找 `.mpc/`。只负责初始化控制文件、生成任务块、维护依赖关系和输出首轮可执行子任务的建议启动命令；不要代替子任务执行开发，也不要自动执行任何命令。
+读取一个需求计划文件，拆分出可执行的 MPC 子任务，并把结果写入 `<repo-root>/.mpc/mpc.md`。所有控制文件都固定放在当前项目的 Git 仓库根目录 `.mpc/` 下；即使从子目录触发，也要先解析到仓库根目录。只负责初始化控制文件、生成任务块、维护依赖关系和输出首轮可执行子任务的建议启动命令；不要代替子任务执行开发，也不要自动执行任何命令。
 
 ## 不可违背的约束
 
-- 只把调用者提供的计划文件，以及现有 `~/.mpc/{工程项目名}/mpc.md` / `~/.mpc/{工程项目名}/mpc_archive.md` 当作事实来源。
-- 在任何写入开始前先申请 `~/.mpc/{工程项目名}/.lock.md`；锁存在时每 2 秒重试一次，最多等待 60 秒；锁超过 10 分钟未释放时停止并报告陈旧锁。
+- 只把调用者提供的计划文件，以及现有 `<repo-root>/.mpc/mpc.md` / `<repo-root>/.mpc/mpc_archive.md` 当作事实来源。
+- 在任何写入开始前先申请 `<repo-root>/.mpc/.lock.md`；锁存在时每 2 秒重试一次，最多等待 60 秒；锁超过 10 分钟未释放时停止并报告陈旧锁。
 - 在锁文件中至少写入：当前 skill 名称、目标任务列表、当前仓库目录或分支、加锁时间。
-- 获取锁后重新读取最新的 `~/.mpc/{工程项目名}/mpc.md`；必要时同时读取 `~/.mpc/{工程项目名}/mpc_archive.md`。
+- 获取锁后重新读取最新的 `<repo-root>/.mpc/mpc.md`；必要时同时读取 `<repo-root>/.mpc/mpc_archive.md`。
 - 写入时只允许：
   - 追加新的子任务块。
   - 以最小改动范围更新直接前序任务的 `后序子任务`。
@@ -23,7 +23,7 @@ description: 将单个需求或计划文档拆分为 MPC 子任务并初始化�
 - 所有时间统一写成 `YYYY-MM-DD HH:mm:ss +08:00`。
 - 所有空值字段必须保留并写成 `待填写` 或 `无`，不得省略字段。
 - 使用“临时文件 + 原子替换”写回，不要原地覆盖。
-- 无论成功或失败，只要持有过锁，都必须在结束前释放 `~/.mpc/{工程项目名}/.lock.md`。
+- 无论成功或失败，只要持有过锁，都必须在结束前释放 `<repo-root>/.mpc/.lock.md`。
 
 ## 固定结构
 
@@ -47,7 +47,7 @@ description: 将单个需求或计划文档拆分为 MPC 子任务并初始化�
 2. 判断哪些工作可以并行，哪些必须串行。
 3. 为每个子任务生成全局唯一的任务名。
 4. 仅使用小写字母、数字、下划线命名任务；拒绝与 `mpc`、`mpc_archive`、`lock` 等保留名称冲突的名字。
-5. 在新增前校验 `~/.mpc/{工程项目名}/mpc.md` 与 `~/.mpc/{工程项目名}/mpc_archive.md` 中都不存在同名任务。
+5. 在新增前校验 `<repo-root>/.mpc/mpc.md` 与 `<repo-root>/.mpc/mpc_archive.md` 中都不存在同名任务。
 6. 默认把单个需求拆成 3 到 10 个可执行步骤；只有强原子性要求下才允许更多。
 7. 如果任务之间存在明显代码冲突、强顺序依赖、共享同一核心改动点，或命中以下任一场景，则拆成串行子任务，并显式写明 `前序子任务` / `后序子任务`：
    - 同文件
@@ -80,13 +80,13 @@ description: 将单个需求或计划文档拆分为 MPC 子任务并初始化�
 
 ## 文件初始化
 
-- 如果 `~/.mpc/{工程项目名}/` 不存在，先创建共享控制目录。
-- 如果 `~/.mpc/{工程项目名}/mpc.md` 不存在，创建骨架文件并写入 `# MPC 控制文件`、`## 元信息`、`版本`、`最后更新时间`、`任务总数`。
-- 不要在本 skill 中主动创建 `~/.mpc/{工程项目名}/mpc_archive.md`，除非实现上必须依赖它做重名检查且文件尚不存在；此时只创建最小骨架。
+- 如果 `<repo-root>/.mpc/` 不存在，先创建项目内控制目录。
+- 如果 `<repo-root>/.mpc/mpc.md` 不存在，创建骨架文件并写入 `# MPC 控制文件`、`## 元信息`、`版本`、`最后更新时间`、`任务总数`。
+- 不要在本 skill 中主动创建 `<repo-root>/.mpc/mpc_archive.md`，除非实现上必须依赖它做重名检查且文件尚不存在；此时只创建最小骨架。
 
 ## 任务树输出
 
-- 写入完成后，按 `~/.mpc/{工程项目名}/mpc.md` 与 `~/.mpc/{工程项目名}/mpc_archive.md` 的并集生成最新任务树；如果归档文件不存在，可以忽略。
+- 写入完成后，按 `<repo-root>/.mpc/mpc.md` 与 `<repo-root>/.mpc/mpc_archive.md` 的并集生成最新任务树；如果归档文件不存在，可以忽略。
 - `前序子任务` 与 `后序子任务` 在存在多个任务时，统一按 `、` 拆分；`前序子任务 = 无` 的任务视为根节点。
 - 子节点顺序严格使用父任务 `后序子任务` 中的顺序；根节点顺序优先保持 `mpc.md` 中的原始顺序。
 - 树状图字符统一使用 `├─`、`└─`、`│  ` 与 3 个空格缩进。
@@ -107,7 +107,7 @@ description: 将单个需求或计划文档拆分为 MPC 子任务并初始化�
 ```
 
 - 明确提示每个首轮可执行子任务应在独立对话框中推进。
-- 被前序子任务阻塞的新任务也必须出现在任务树中，但不要再额外用平铺列表逐条打印；它们只写入 `~/.mpc/{工程项目名}/mpc.md`，等待后续由 `mpc-master-progress` / `mpc-slave` 驱动。
+- 被前序子任务阻塞的新任务也必须出现在任务树中，但不要再额外用平铺列表逐条打印；它们只写入 `<repo-root>/.mpc/mpc.md`，等待后续由 `mpc-master-progress` / `mpc-slave` 驱动。
 - 如果本次新增任务里没有任何首轮可执行项，明确输出“首轮可执行子任务：无”，并简要指出阻塞来自哪些前序任务即可，不要展开打印全部阻塞链路。
 
 ## 禁止事项

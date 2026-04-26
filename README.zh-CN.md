@@ -4,7 +4,7 @@
 
 这个仓库是对 [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done) 的一个小规模补充 skill 包。它提供了一套轻量的多阶段控制器工作流，用来协调一个主控会话和多个在同一仓库目录中并行推进的子任务对话。
 
-控制核心围绕 `~/.mpc/{git仓库名}/mpc.md`、`~/.mpc/{git仓库名}/mpc_archive.md` 和 `~/.mpc/{git仓库名}/.lock.md` 展开。目录名取 Git 仓库名字，而不是当前 checkout 路径。目标是在多对话并行场景下，让子任务拆分、进度推进、回归确认和归档都更稳定、更可追踪，而不是替代 GSD 本身。
+控制核心围绕 `<repo-root>/.mpc/mpc.md`、`<repo-root>/.mpc/mpc_archive.md` 和 `<repo-root>/.mpc/.lock.md` 展开。控制目录固定位于当前项目的 Git 仓库根目录 `./.mpc/` 下；即使从子目录触发 skill，也要先解析到仓库根目录。目标是在多对话并行场景下，让子任务拆分、进度推进、回归确认和归档都更稳定、更可追踪，而不是替代 GSD 本身。
 
 ## 特点
 
@@ -18,7 +18,7 @@
 - `mpc-master-start`：把一个需求或计划文档拆成 MPC 子任务，并给出首轮可执行任务
 - `mpc-master-progress`：只读查看活动任务或归档任务状态
 - `mpc-master-regress`：对已完成的单个 MPC 子任务做主控回归，并在确认后推进到 `已回归`
-- `mpc-master-archive`：把一个已回归任务从 `~/.mpc/{git仓库名}/mpc.md` 移动到 `~/.mpc/{git仓库名}/mpc_archive.md`
+- `mpc-master-archive`：把一个已回归任务从 `<repo-root>/.mpc/mpc.md` 移动到 `<repo-root>/.mpc/mpc_archive.md`
 - `mpc-slave`：在共享仓库目录中按显式任务名推进一个子任务的执行状态
 
 ## 仓库结构
@@ -67,7 +67,7 @@ https://github.com/luobote55/multi-phase-controller
 ## 使用说明
 
 1. 在目标项目仓库里准备一个需求或计划文档。
-2. 运行 `/mpc-master-start path/to/plan.md`，把子任务写入 `~/.mpc/{git仓库名}/mpc.md`。
+2. 运行 `/mpc-master-start path/to/plan.md`，把子任务写入 `<repo-root>/.mpc/mpc.md`。
 3. 为首轮可执行任务分别打开独立对话，并运行 `/mpc-slave task_name`。
 4. 每个任务都在自己的对话里持续推进；需要刷新进度或建议完成时，再次运行 `/mpc-slave task_name`。
 5. 在主控会话中运行 `/mpc-master-progress`，查看总览或单任务详情。
@@ -76,20 +76,20 @@ https://github.com/luobote55/multi-phase-controller
 
 ## 运行时文件
 
-下面这些文件属于“使用这些 skills 的目标项目”，不属于本 skill 仓库本身：
+下面这些文件属于“使用这些 skills 的目标项目”的仓库根目录 `.mpc/`，除非当前仓库本身就是目标项目，否则不应出现在已发布的 skill 源码中：
 
-- `~/.mpc/{git仓库名}/mpc.md`
-- `~/.mpc/{git仓库名}/mpc_archive.md`
-- `~/.mpc/{git仓库名}/.lock.md`
+- `<repo-root>/.mpc/mpc.md`
+- `<repo-root>/.mpc/mpc_archive.md`
+- `<repo-root>/.mpc/.lock.md`
 
 ## 其他建议
 
-- 控制文件始终放在 `~/.mpc/{git仓库名}/` 下，不要在仓库里创建本地 `.mpc/`。
-- 只让定义好的写入型 skills 修改 `~/.mpc/{git仓库名}/` 下的文件。
+- 控制文件始终放在目标项目仓库根目录的 `.mpc/` 下。
+- 只让定义好的写入型 skills 修改 `<repo-root>/.mpc/` 下的文件。
 - 同一时刻只让一个对话推进一个任务。
 - 任务拆分要保守：只要涉及同文件、同核心模块、路由或注册表、依赖清单、生成产物、共享导出面，或存在明显顺序关系，就建模为串行任务而不是并行任务。
 - 把这个仓库当作 GSD 的补充，不要把它当成 GSD 的替代品。
-- 不要把运行时生成的 `~/.mpc/{git仓库名}/` 状态文件拷回或提交到这个 skill 仓库。
+- 不要把运行时生成的 `.mpc/` 状态文件混入已发布的 skill 源码；本仓库默认通过 `.gitignore` 忽略它。
 
 ## 发布说明
 

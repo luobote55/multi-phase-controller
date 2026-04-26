@@ -1,34 +1,34 @@
 ---
 name: mpc-master-archive
-description: 将状态为 `已回归` 的 MPC 子任务从 `~/.mpc/{工程项目名}/mpc.md` 安全移动到 `~/.mpc/{工程项目名}/mpc_archive.md`。在用户调用 `/mpc-master-archive task-name`、要求归档已回归任务、或需要维护活动区与归档区一致性时使用。Use when Codex needs to archive one regressed MPC task by moving it from `~/.mpc/{project-name}/mpc.md` to `~/.mpc/{project-name}/mpc_archive.md` while keeping both files consistent.
+description: 将状态为 `已回归` 的 MPC 子任务从 `<repo-root>/.mpc/mpc.md` 安全移动到 `<repo-root>/.mpc/mpc_archive.md`。在用户调用 `/mpc-master-archive task-name`、要求归档已回归任务、或需要维护活动区与归档区一致性时使用。Use when Codex needs to archive one regressed MPC task by moving it from `<repo-root>/.mpc/mpc.md` to `<repo-root>/.mpc/mpc_archive.md` while keeping both files consistent.
 ---
 
 # MPC Master Archive
 
 ## 概览
 
-把单个 `已回归` 状态的子任务从活动控制文件移动到归档控制文件。所有控制文件都位于共享目录 `~/.mpc/{工程项目名}/`，其中 `工程项目名` 固定取 Git 仓库名字；不要在当前工程目录下寻找 `.mpc/`。这里的“归档”是移动，不是复制；活动区删除、归档区追加，两边元信息都要同步更新。
+把单个 `已回归` 状态的子任务从活动控制文件移动到归档控制文件。所有控制文件都位于当前项目 Git 仓库根目录的 `.mpc/` 下；即使从子目录触发，也要先解析到仓库根目录。这里的“归档”是移动，不是复制；活动区删除、归档区追加，两边元信息都要同步更新。
 
 ## 不可违背的约束
 
 - 只处理一个明确指定的 `任务标识`。
-- 写入前先持有 `~/.mpc/{工程项目名}/.lock.md`，并在结束时释放。
-- 获取锁后重新读取最新 `~/.mpc/{工程项目名}/mpc.md`；必要时同时读取 `~/.mpc/{工程项目名}/mpc_archive.md`。
-- 目标任务必须存在于 `~/.mpc/{工程项目名}/mpc.md` 中，且状态为 `已回归`。
-- 如果同名任务已经存在于 `~/.mpc/{工程项目名}/mpc_archive.md`，视为数据异常并停止。
+- 写入前先持有 `<repo-root>/.mpc/.lock.md`，并在结束时释放。
+- 获取锁后重新读取最新 `<repo-root>/.mpc/mpc.md`；必要时同时读取 `<repo-root>/.mpc/mpc_archive.md`。
+- 目标任务必须存在于 `<repo-root>/.mpc/mpc.md` 中，且状态为 `已回归`。
+- 如果同名任务已经存在于 `<repo-root>/.mpc/mpc_archive.md`，视为数据异常并停止。
 - 使用“临时文件 + 原子替换”写回两个文件。
 - 不要修改无关任务块。
 
 ## 归档流程
 
 1. 读取并校验目标任务。
-2. 如果 `~/.mpc/{工程项目名}/mpc_archive.md` 不存在，创建最小骨架文件。
-3. 将目标任务块从 `~/.mpc/{工程项目名}/mpc.md` 移动到 `~/.mpc/{工程项目名}/mpc_archive.md` 末尾。
+2. 如果 `<repo-root>/.mpc/mpc_archive.md` 不存在，创建最小骨架文件。
+3. 将目标任务块从 `<repo-root>/.mpc/mpc.md` 移动到 `<repo-root>/.mpc/mpc_archive.md` 末尾。
 4. 在被移动的任务块中写入：
    - `归档状态 = 已归档`
    - `归档时间 = 当前时间`
    - `最后更新时间 = 当前时间`
-5. 从 `~/.mpc/{工程项目名}/mpc.md` 删除该任务块。
+5. 从 `<repo-root>/.mpc/mpc.md` 删除该任务块。
 6. 同步更新两个文件头部：
    - `最后更新时间`
    - `任务总数`
@@ -36,7 +36,7 @@ description: 将状态为 `已回归` 的 MPC 子任务从 `~/.mpc/{工程项目
 ## 一致性要求
 
 - 被归档任务保留原有字段顺序与内容，只更新归档相关字段。
-- 即使其他未归档任务仍把它当作 `前序子任务`，也允许归档；后续解析必须能从 `~/.mpc/{工程项目名}/mpc_archive.md` 命中它。
+- 即使其他未归档任务仍把它当作 `前序子任务`，也允许归档；后续解析必须能从 `<repo-root>/.mpc/mpc_archive.md` 命中它。
 - 活动文件和归档文件中的 `任务总数` 必须分别反映各自当前块数。
 
 ## 解析要求
@@ -63,7 +63,7 @@ description: 将状态为 `已回归` 的 MPC 子任务从 `~/.mpc/{工程项目
 ## 任务树输出
 
 - 命令结束时都必须输出一次最新任务树；如果已经成功归档，输出写回后的树，否则输出未变更的当前树。
-- 任务树基于 `~/.mpc/{工程项目名}/mpc.md` 与 `~/.mpc/{工程项目名}/mpc_archive.md` 的并集生成。
+- 任务树基于 `<repo-root>/.mpc/mpc.md` 与 `<repo-root>/.mpc/mpc_archive.md` 的并集生成。
 - `前序子任务` 与 `后序子任务` 在存在多个任务时，统一按 `、` 拆分；`前序子任务 = 无` 的任务视为根节点。
 - 子节点顺序严格使用父任务 `后序子任务` 中的顺序；根节点顺序优先保持 `mpc.md` 中的原始顺序。
 - 树状图字符统一使用 `├─`、`└─`、`│  ` 与 3 个空格缩进。
