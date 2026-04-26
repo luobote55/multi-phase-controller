@@ -2,24 +2,24 @@
 
 # Multi-Phase Controller Skills for Codex
 
-This repository is a small add-on skill pack for [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done). It adds a lightweight multi-phase controller workflow for Codex and similar agents that need to coordinate one main controller session with several task-specific worktrees.
+This repository is a small add-on skill pack for [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done). It adds a lightweight multi-phase controller workflow for Codex and similar agents that need to coordinate one main controller session with several task-specific conversations inside the same repository directory.
 
-The controller is built around `~/.mpc/{git-repo-name}/mpc.md`, `~/.mpc/{git-repo-name}/mpc_archive.md`, and `~/.mpc/{git-repo-name}/.lock.md`. All worktrees from the same Git repository share that directory, and the folder name is derived from the Git repository name rather than the current worktree directory. The goal is to make subtask splitting, progress tracking, regression, and archiving predictable across parallel worktrees without turning this repo into a replacement for GSD itself.
+The controller is built around `~/.mpc/{git-repo-name}/mpc.md`, `~/.mpc/{git-repo-name}/mpc_archive.md`, and `~/.mpc/{git-repo-name}/.lock.md`. The folder name is derived from the Git repository name rather than the current checkout path. The goal is to make subtask splitting, progress tracking, regression, and archiving predictable across parallel conversations without turning this repo into a replacement for GSD itself.
 
 ## Highlights
 
 - Codex-first skill layout
 - GitHub-friendly installation via `/skill install`
-- Small, focused extension to GSD instead of a fork or rewrite
+- Single-directory-first execution model
 - Bilingual repository docs in English and Chinese
 
 ## Included skills
 
-- `mpc-master-start`: split one requirement or plan document into MPC subtasks and suggest worktree commands
+- `mpc-master-start`: split one requirement or plan document into MPC subtasks and suggest the first execution wave
 - `mpc-master-progress`: show a read-only overview of active or archived task status
 - `mpc-master-regress`: review one completed MPC task and move it to `已回归` after explicit approval
 - `mpc-master-archive`: move one regressed task from `~/.mpc/{git-repo-name}/mpc.md` to `~/.mpc/{git-repo-name}/mpc_archive.md`
-- `mpc-slave`: run inside one worktree and advance exactly one task through the worker-side state machine
+- `mpc-slave`: advance exactly one explicit task through the worker-side state machine from the shared repository directory
 
 ## Repository layout
 
@@ -68,8 +68,8 @@ Recommended installation set:
 
 1. Prepare a requirement or plan document in the target project repository.
 2. Run `/mpc-master-start path/to/plan.md` to create subtasks inside `~/.mpc/{git-repo-name}/mpc.md`.
-3. Create the suggested git worktrees manually.
-4. In each worktree, run `/mpc-slave` to update progress and propose completion when ready.
+3. Open one conversation per first-wave task and run `/mpc-slave task_name`.
+4. Continue each task in its own conversation. Use `/mpc-slave task_name` again whenever you want to refresh progress or propose completion.
 5. In the main controller session, run `/mpc-master-progress` to inspect the whole board or one task.
 6. After a worker task reaches `完成`, run `/mpc-master-regress task_name`.
 7. After regression passes, run `/mpc-master-archive task_name`.
@@ -84,9 +84,10 @@ These files belong in the target project that uses the skills, not in this skill
 
 ## Recommendations
 
-- Keep task name, worktree directory name, and branch name identical.
+- Keep all controller files under `~/.mpc/{git-repo-name}/`; do not create a repository-local `.mpc/`.
 - Let only the defined writer skills modify files under `~/.mpc/{git-repo-name}/`.
-- Use one subtask per worktree.
+- Use one active conversation per task at a time.
+- Split tasks conservatively: if two tasks touch the same file, core module, route registry, dependency manifest, generated artifact, or shared export surface, model them as serial tasks instead of parallel tasks.
 - Treat this repo as a companion to GSD, not a replacement for GSD.
 - Do not copy generated runtime state from `~/.mpc/{git-repo-name}/` into this repository.
 

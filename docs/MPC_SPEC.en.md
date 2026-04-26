@@ -10,7 +10,7 @@ This document defines the behavior contract for the following five skills:
 - `mpc-master-archive`
 - `mpc-slave`
 
-These skills form a small multi-phase controller layer on top of normal GSD-style work. The controller is centered on `~/.mpc/{project-name}/mpc.md` and `~/.mpc/{project-name}/mpc_archive.md`, so a main controller session and several worktree-bound worker sessions can coordinate without losing task state. `project-name` is always the Git repository name, not the current worktree directory name.
+These skills form a small multi-phase controller layer on top of normal GSD-style work. The controller is centered on `~/.mpc/{project-name}/mpc.md` and `~/.mpc/{project-name}/mpc_archive.md`, so a main controller session and several worker conversations inside the same repository directory can coordinate without losing task state. `project-name` is always the Git repository name, not the current checkout path.
 
 This document is a behavior spec, not a marketing page.
 
@@ -22,10 +22,11 @@ This document is a behavior spec, not a marketing page.
 
 Rules:
 
-- These files live in a shared directory keyed by the Git repository name, and every worktree from the same repository uses the same controller files.
+- These files live in a shared directory keyed by the Git repository name, and all conversations for the same repository use the same controller files.
 - The names `mpc.md`, `mpc_archive.md`, and `.lock.md` are fixed.
 - `.lock.md` is a temporary write lock and is never created by read-only skills.
 - If the files do not exist yet, `mpc-master-start` or the first archive action may create the minimal skeleton.
+- Do not create a repository-local `.mpc/`.
 
 ## Core principles
 
@@ -35,10 +36,11 @@ Rules:
   - `mpc-master-progress`
   - `mpc-master-regress`
   - `mpc-master-archive`
-- Every subtask must map to exactly one worktree.
-- `task name`, `worktree name`, `worktree directory name`, and `worktree branch name` must be identical.
+- Subtasks are driven by explicit task identifiers rather than directory- or branch-based auto-detection.
+- Single-directory execution is the primary mode: multiple subtasks progress through separate conversations in the same repository directory.
+- The default rule is "one active conversation per task at a time". This spec does not add session-claiming machinery.
 - Subtasks should be parallel by default. If there is a real dependency, declare it explicitly with `前序子任务` and `后序子任务`.
-- If two subtasks obviously conflict in code, depend on strict ordering, or share the same core edit point, they must be serialized rather than run in parallel.
+- If two subtasks touch the same file, core module, route or registry, dependency manifest, generated artifact, shared export surface, or otherwise require strict sequencing, they must be serialized rather than run in parallel.
 - `mpc.md` must use a fixed field order. No field may be omitted. Empty values must be recorded as `待填写` or `无`.
 - Read-only actions must stay read-only. State transitions must be explicit.
 - All timestamps must use `YYYY-MM-DD HH:mm:ss +08:00`.
@@ -71,14 +73,16 @@ Archiving is not a state. It is an action allowed only after regression passes.
 
 Every task block inside `mpc.md` must preserve this exact field order:
 
-`任务标识 -> 状态 -> 来源计划文件 -> worktree名称 -> worktree目录 -> worktree分支 -> 前序子任务 -> 后序子任务 -> 开始时间 -> 完成时间 -> 回归时间 -> 归档时间 -> 最后更新时间 -> 累计耗时 -> 预计剩余时间 -> 当前进度概况 -> 阻塞事项 -> 下一步提示词 -> 开始提示词 -> 完成提示词 -> 完成摘要 -> 回归摘要 -> 归档状态`
+`任务标识 -> 状态 -> 来源计划文件 -> 执行模式 -> 执行目录 -> 前序子任务 -> 后序子任务 -> 子任务目标 -> 开始时间 -> 完成时间 -> 回归时间 -> 归档时间 -> 最后更新时间 -> 累计耗时 -> 预计剩余时间 -> 当前进度概况 -> 阻塞事项 -> 下一步提示词 -> 开始提示词 -> 完成提示词 -> 完成摘要 -> 回归摘要 -> 归档状态`
 
 Additional rules:
 
+- `执行模式` is currently fixed to `single_dir`.
+- `执行目录` is currently fixed to `.`.
 - `当前进度概况` is at most 5 lines.
 - `阻塞事项` is at most 5 lines. Write `无` if there is no blocker.
 - `累计耗时` and `预计剩余时间` use `Xd Xh Xm` style text such as `4h 30m`.
-- `完成摘要` must cover completed work, remaining risk, self-check results, and what the main controller should focus on during regression.
+- `完成摘要` must cover completed work, affected files or modules, self-check commands and results, remaining risk, and what the main controller should focus on during regression.
 - `回归摘要` must cover regression scope, evidence, result, and whether archiving is allowed.
 - `归档状态` must be either `未归档` or `已归档`.
 
@@ -104,7 +108,7 @@ Even though real contention is usually low, all writes must still be serialized.
 2. The lock file must record at least:
    - owner skill name
    - target task or task list
-   - current worktree or branch
+   - current repository directory or branch
    - lock timestamp
 3. If the lock already exists, retry every 2 seconds for up to 60 seconds.
 4. If the lock survives more than 10 minutes, treat it as stale and stop with an explicit error.
@@ -130,7 +134,9 @@ Even though real contention is usually low, all writes must still be serialized.
 - Split one requirement into roughly 3 to 10 executable steps by default.
 - More than 10 steps is allowed only when strong atomicity requires it.
 - Use serial subtasks, not parallel subtasks, when the work clearly conflicts or depends on strict sequencing.
+- Also default to serial subtasks whenever the work touches the same file, core module, route or registry, dependency manifest, generated artifact, or shared export surface.
 - If a new task chain extends an existing chain, only the direct predecessor's `后序子任务` may be updated, and only with the smallest possible change.
+- Do not add path-ownership checks or session-claiming logic in this version. Conflict control relies on task splitting, dependency links, and calling discipline.
 
 ## Skill definitions
 
@@ -150,28 +156,19 @@ Responsibilities:
 - Generate:
   - task identifiers
   - predecessor and successor links
+  - subtask goals
   - start prompts
   - completion prompts
+- Write `执行模式 = single_dir` and `执行目录 = .` for every new task.
 - Create `~/.mpc/{project-name}/` and the minimal `mpc.md` skeleton when needed.
-- Suggest `git worktree add` commands, but never execute them automatically.
+- Suggest the first executable wave, but never execute anything automatically.
 
 Required output:
 
 - total number of newly added tasks
 - the first executable wave only
-- suggested worktree commands only for that first executable wave
-
-Additional constraints:
-
-- A task is in the first executable wave when `前序子任务 = 无`, or when its predecessor tasks are already `已回归` in the existing controller files.
-- Newly added tasks that are still blocked by predecessors must still be written into `~/.mpc/{project-name}/mpc.md`, but they should not be printed one by one in the command output.
-- If there is no immediately executable task in the new batch, explicitly print `首轮可执行任务: 无` and briefly name the blocking predecessors without dumping the whole blocked chain.
-
-Suggested command format:
-
-```bash
-git worktree add ../task_name -b task_name base_branch
-```
+- suggested commands in the form `/mpc-slave <task_name>` only for that first executable wave
+- an explicit reminder that each first-wave task should run in its own conversation
 
 ### `mpc-master-progress`
 
@@ -190,6 +187,7 @@ Responsibilities:
 
 Display rules:
 
+- Single-task detail always shows `子任务目标` first.
 - `未开始`: show `开始提示词`
 - `进行中`: show elapsed time, progress summary, blockers, remaining estimate, next prompt
 - `完成`: show completion time, total effort, completion summary, completion prompt
@@ -206,18 +204,16 @@ Manual invocation example:
 Responsibilities:
 
 - Work on one task that is currently `完成`.
-- Collect regression evidence from code changes, self-check results, remaining risks, and task goals.
+- Build regression evidence primarily from:
+  - `完成摘要`
+  - self-check commands and results
+  - the current overall repository state
+  - `子任务目标`
+- Do not assume an isolated task-level Git diff exists.
 - Present a recommendation first.
 - Only move the task to `已回归` after explicit approval from the current caller.
 
-When approved, update:
-
-- `状态 = 已回归`
-- `回归时间`
-- `回归摘要`
-- `最后更新时间`
-
-If regression does not pass, keep the task in `完成`.
+If `完成摘要` does not contain affected files or modules and self-check commands or results, and the caller does not provide equivalent evidence separately, default to "insufficient evidence" or "recommended regression failure".
 
 ### `mpc-master-archive`
 
@@ -233,27 +229,18 @@ Responsibilities:
 - Move that task from `~/.mpc/{project-name}/mpc.md` to `~/.mpc/{project-name}/mpc_archive.md`.
 - Create a minimal archive file if necessary.
 
-When archiving, update:
-
-- `归档状态 = 已归档`
-- `归档时间`
-- `最后更新时间`
-
-Do not archive tasks in `未开始`, `进行中`, or `完成`.
-
 ### `mpc-slave`
 
 Manual invocation example:
 
 ```text
-/mpc-slave
+/mpc-slave phone_1_requirement_1
 ```
 
 Responsibilities:
 
-- Run inside the current task worktree.
-- Identify the task from the current directory name and git branch name.
-- Refuse to continue if they do not match exactly.
+- Require one explicit `任务标识` argument.
+- Never auto-detect the task from the current directory, Git branch, or recent changes.
 - Use `~/.mpc/{project-name}/mpc.md` as the controller file.
 - Only handle `未开始 -> 进行中 -> 完成`.
 
@@ -265,8 +252,9 @@ Behavior by state:
   - initialize start time, remaining estimate, and next prompt
 - `进行中`
   - update progress summary, blockers, remaining estimate, next prompt, and last updated time
-  - prefer the newest relevant file under `./planning/`
+  - prefer the newest relevant file under `./planning/` in the shared repository directory
   - if there is enough evidence, recommend completion first
+  - completion evidence must include completed work, affected files or modules, self-check commands and results, remaining risk, and recommended regression focus points
   - only move to `完成` after explicit approval
 - `完成`
   - show completion information only
@@ -280,11 +268,11 @@ Behavior by state:
 The design is considered valid when all of the following work reliably:
 
 1. `mpc-master-start` creates correctly structured subtasks.
-2. `mpc-master-progress` shows a stable read-only overview.
-3. `mpc-slave` identifies its own task from the current worktree and can move it to `完成` after approval.
-4. `mpc-master-regress` can evaluate one completed task and safely move it to `已回归` after approval.
+2. `mpc-master-progress` shows a stable read-only overview and task tree.
+3. `mpc-slave` identifies its task from an explicit `任务标识` and can move it to `完成` after approval.
+4. `mpc-master-regress` can evaluate one completed task from completion summaries, self-checks, and the current repository state, then safely move it to `已回归` after approval.
 5. `mpc-master-archive` can safely move one regressed task into the archive file.
-6. Parallel worktrees do not lose task state because of overwrite races.
+6. Parallel conversations do not lose task state because of overwrite races.
 
 ## Explicitly forbidden behavior
 
@@ -297,3 +285,4 @@ The design is considered valid when all of the following work reliably:
 - Do not decide that a predecessor task is missing by checking only `~/.mpc/{project-name}/mpc.md`.
 - Do not rewrite unrelated task blocks while updating one task.
 - Do not omit fixed fields and break downstream parsing.
+- Do not allow `mpc-slave` to run without an explicit task name or to guess one automatically.
