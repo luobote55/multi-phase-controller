@@ -1,13 +1,13 @@
 ---
 name: mpc-master-progress
-description: 只读查看 MPC 子任务状态总览或单个任务详情。在用户调用 `/mpc-master-progress`、要求查看 `<repo-root>/.mpc/mpc.md` 的全部任务进度、或查询某个任务当前或归档状态但绝不能修改任何控制文件时使用。Use when Codex needs a read-only overview of MPC task status or the details of one active or archived task inside `<repo-root>/.mpc/` without modifying any controller files.
+description: 只读查看 `<repo-root>/.mpc/` 共享任务记录板中的全部任务总览或单个任务详情，并输出最新任务树。在用户调用 `/mpc-master-progress`、要求查看活动区或归档区中的任务状态、或需要只读展示 `开始提示词`、`下一步提示词`、`完成提示词` 时使用。Use when Codex needs a read-only view of the shared MPC task board for a GSD project, including active or archived task status and the latest task tree.
 ---
 
 # MPC Master Progress
 
 ## 概览
 
-只读查看 MPC 控制器状态。先解析当前项目的 Git 仓库根目录，再读取 `<repo-root>/.mpc/mpc.md`，并在需要查询单个任务或渲染完整任务树时按规则补查 `<repo-root>/.mpc/mpc_archive.md`。绝不创建锁文件，绝不修改任何控制文件。
+只读查看 MPC 共享任务记录板。先解析当前项目的 Git 仓库根目录，再读取 `<repo-root>/.mpc/mpc.md`，并在需要查询单个任务或渲染完整任务树时按规则补查 `<repo-root>/.mpc/mpc_archive.md`。绝不创建锁文件，绝不修改任何控制文件。
 
 ## 只读约束
 
@@ -28,8 +28,6 @@ description: 只读查看 MPC 子任务状态总览或单个任务详情。在�
 - `后序子任务`
 - `最后更新时间`
 
-如文件头部存在 `任务总数`，同步展示。
-
 ### 单个任务参数
 
 按 `任务标识` 精确查找单个任务，并根据状态输出对应信息。单任务详情输出完成后，仍要补一份最新任务树。
@@ -41,6 +39,11 @@ description: 只读查看 MPC 子任务状态总览或单个任务详情。在�
 - `进行中`：显示已进行多久、`当前进度概况`、`阻塞事项`、`预计剩余时间`、`下一步提示词`。
 - `完成`：显示 `完成时间`、`累计耗时`、`完成摘要`、`完成提示词`。
 - `已回归`：显示 `开始时间`、`完成时间`、`回归时间`、`累计耗时`、`回归摘要`、`归档状态`。
+
+显示提示词时：
+
+- 保持原文，不要移除 `利用gsd skills的能力，实现需求：...` 前缀。
+- 不要把提示词改写成新的执行指令。
 
 ## 任务树输出
 
@@ -57,12 +60,6 @@ description: 只读查看 MPC 子任务状态总览或单个任务详情。在�
 按固定标题精确读取字段，不要根据位置猜测。字段顺序应当能够被稳定识别为：
 
 `任务标识 -> 状态 -> 来源计划文件 -> 执行模式 -> 执行目录 -> 前序子任务 -> 后序子任务 -> 子任务目标 -> 开始时间 -> 完成时间 -> 回归时间 -> 归档时间 -> 最后更新时间 -> 累计耗时 -> 预计剩余时间 -> 当前进度概况 -> 阻塞事项 -> 下一步提示词 -> 开始提示词 -> 完成提示词 -> 完成摘要 -> 回归摘要 -> 归档状态`
-
-## 输出风格
-
-- 无参数模式下优先输出任务树，再补充必要的状态摘要，不要写成长篇解释。
-- 单任务查询时优先展示当前最有用的字段，不必重复全部原始字段；详情之后补输出最新任务树。
-- 如果任务已归档，明确说明信息来自 `<repo-root>/.mpc/mpc_archive.md`。
 
 ## 禁止事项
 

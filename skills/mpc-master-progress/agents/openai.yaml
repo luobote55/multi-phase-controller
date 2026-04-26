@@ -1,4 +1,4 @@
 interface:
   display_name: "MPC Master Progress"
-  short_description: "Read MPC task status without writing / 只读查看 MPC 任务状态"
-  default_prompt: "Resolve the current project's Git repository root, use `<repo-root>/.mpc/` as the controller directory, read controller files in read-only mode for the current repository's shared multi-conversation board, and show either the full task overview or one task's detailed status, surfacing `子任务目标` in single-task detail and always following with the latest task tree across the active and archive files. 先解析当前项目的 Git 仓库根目录，并使用 `<repo-root>/.mpc/` 作为控制目录；围绕当前仓库的共享多对话任务板只读读取控制文件，展示全部任务总览，或查询单个任务在活动区与归档区中的详细状态；单任务详情时优先展示 `子任务目标`，并且始终在结尾输出最新任务树。"
+  short_description: "Read the shared MPC task board / 只读查看共享 MPC 任务记录板"
+  default_prompt: "Resolve the current project's Git repository root, use `<repo-root>/.mpc/` as the shared controller directory, read the active and archive task records in read-only mode, show either the full task overview or one task's detailed status, surface `子任务目标` first in single-task detail, keep displayed task prompts verbatim including the `利用gsd skills的能力，实现需求：...` prefix, and always end with the latest task tree. 先解析当前项目的 Git 仓库根目录，并使用 `<repo-root>/.mpc/` 作为共享控制目录；以只读方式读取活动区和归档区任务记录，展示全部任务总览或单个任务详情；单任务详情时优先展示 `子任务目标`，并在显示任务提示词时保留 `利用gsd skills的能力，实现需求：...` 前缀原文；结尾始终输出最新任务树。"

@@ -1,6 +1,6 @@
 ---
 name: mpc-master-archive
-description: 将状态为 `已回归` 的 MPC 子任务从 `<repo-root>/.mpc/mpc.md` 安全移动到 `<repo-root>/.mpc/mpc_archive.md`。在用户调用 `/mpc-master-archive task-name`、要求归档已回归任务、或需要维护活动区与归档区一致性时使用。Use when Codex needs to archive one regressed MPC task by moving it from `<repo-root>/.mpc/mpc.md` to `<repo-root>/.mpc/mpc_archive.md` while keeping both files consistent.
+description: 将状态为 `已回归` 的 MPC 子任务从 `<repo-root>/.mpc/mpc.md` 安全移动到 `<repo-root>/.mpc/mpc_archive.md`，作为可选的历史归档能力使用。在用户调用 `/mpc-master-archive task-name`、要求归档已回归任务、或需要维护活动区与归档区一致性时使用。Use when Codex needs the optional archival step that moves one regressed MPC task from `<repo-root>/.mpc/mpc.md` to `<repo-root>/.mpc/mpc_archive.md`.
 ---
 
 # MPC Master Archive
@@ -8,6 +8,8 @@ description: 将状态为 `已回归` 的 MPC 子任务从 `<repo-root>/.mpc/mpc
 ## 概览
 
 把单个 `已回归` 状态的子任务从活动控制文件移动到归档控制文件。所有控制文件都位于当前项目 Git 仓库根目录的 `.mpc/` 下；即使从子目录触发，也要先解析到仓库根目录。这里的“归档”是移动，不是复制；活动区删除、归档区追加，两边元信息都要同步更新。
+
+这是可选的历史归档能力，不是任务记录主流程的唯一重点。
 
 ## 不可违背的约束
 
@@ -33,33 +35,6 @@ description: 将状态为 `已回归` 的 MPC 子任务从 `<repo-root>/.mpc/mpc
    - `最后更新时间`
    - `任务总数`
 
-## 一致性要求
-
-- 被归档任务保留原有字段顺序与内容，只更新归档相关字段。
-- 即使其他未归档任务仍把它当作 `前序子任务`，也允许归档；后续解析必须能从 `<repo-root>/.mpc/mpc_archive.md` 命中它。
-- 活动文件和归档文件中的 `任务总数` 必须分别反映各自当前块数。
-
-## 解析要求
-
-始终按以下顺序保留任务块结构：
-
-`任务标识 -> 状态 -> 来源计划文件 -> 执行模式 -> 执行目录 -> 前序子任务 -> 后序子任务 -> 子任务目标 -> 开始时间 -> 完成时间 -> 回归时间 -> 归档时间 -> 最后更新时间 -> 累计耗时 -> 预计剩余时间 -> 当前进度概况 -> 阻塞事项 -> 下一步提示词 -> 开始提示词 -> 完成提示词 -> 完成摘要 -> 回归摘要 -> 归档状态`
-
-归档完成后必须满足：
-
-- `状态 = 已回归`
-- `归档状态 = 已归档`
-- `归档时间` 已填写
-
-## 输出要求
-
-向调用者明确说明：
-
-- 归档是否成功
-- 任务已从哪个文件移动到哪个文件
-- 两个控制文件更新后的任务总数
-- 最新任务树；归档后的目标任务仍要保留在树中，并显示为 `[已归档]`
-
 ## 任务树输出
 
 - 命令结束时都必须输出一次最新任务树；如果已经成功归档，输出写回后的树，否则输出未变更的当前树。
@@ -68,7 +43,6 @@ description: 将状态为 `已回归` 的 MPC 子任务从 `<repo-root>/.mpc/mpc
 - 子节点顺序严格使用父任务 `后序子任务` 中的顺序；根节点顺序优先保持 `mpc.md` 中的原始顺序。
 - 树状图字符统一使用 `├─`、`└─`、`│  ` 与 3 个空格缩进。
 - 节点后默认追加状态标签；已归档任务统一显示为 `task_name [已归档]`。
-- 任务树格式必须复用 `mpc-master-start` 的完整树风格，不要退化为平铺列表或省略层级。
 - 如果发现同名任务同时存在于活动区与归档区、循环依赖、缺失子任务、或同一子任务被多个父任务直接声明为后序任务，立即报告数据异常并停止。
 
 ## 禁止事项

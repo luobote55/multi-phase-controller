@@ -2,24 +2,24 @@
 
 # 面向 Codex 的 Multi-Phase Controller Skills
 
-这个仓库是对 [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done) 的一个小规模补充 skill 包。它提供了一套轻量的多阶段控制器工作流，用来协调一个主控会话和多个在同一仓库目录中并行推进的子任务对话。
+这个仓库是对 [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done) 的一个补充 skill 包，定位为 GSD 项目的多 phase 管理辅助记录工具。它的核心职责不是替代 GSD 主工作流，而是把 GSD 已拆分的任务列表整理写入 `<repo-root>/.mpc/mpc.md`，并在多对话场景下持续同步任务进度。
 
-控制核心围绕 `<repo-root>/.mpc/mpc.md`、`<repo-root>/.mpc/mpc_archive.md` 和 `<repo-root>/.mpc/.lock.md` 展开。控制目录固定位于当前项目的 Git 仓库根目录 `./.mpc/` 下；即使从子目录触发 skill，也要先解析到仓库根目录。目标是在多对话并行场景下，让子任务拆分、进度推进、回归确认和归档都更稳定、更可追踪，而不是替代 GSD 本身。
+控制核心围绕 `<repo-root>/.mpc/mpc.md`、`<repo-root>/.mpc/mpc_archive.md` 和 `<repo-root>/.mpc/.lock.md` 展开。控制目录固定放在目标项目的 Git 仓库根目录 `./.mpc/` 下；即使从子目录触发 skill，也要先解析到仓库根目录。`mpc-master-regress` 和 `mpc-master-archive` 仍然保留，但它们属于可选治理能力，不再是仓库的主叙事重点。
 
 ## 特点
 
-- 优先面向 Codex 组织目录
-- 支持通过 GitHub 路径使用 `/skill install`
-- 以单目录执行为主流程
-- 仓库文档提供中英文双版
+- 面向 GSD 已拆分任务的整理导入与记录
+- 用共享的 `mpc.md` 维护多会话协作中的进度真相
+- 以单目录执行为主流程，适合并行推进多个任务
+- 保留可选的回归确认与历史归档能力
 
 ## 包含的 skills
 
-- `mpc-master-start`：把一个需求或计划文档拆成 MPC 子任务，并给出首轮可执行任务
-- `mpc-master-progress`：只读查看活动任务或归档任务状态
-- `mpc-master-regress`：对已完成的单个 MPC 子任务做主控回归，并在确认后推进到 `已回归`
+- `mpc-master-start`：整理导入 GSD 已拆分任务列表，写入 `<repo-root>/.mpc/mpc.md`，并罗列本次全部新增任务
+- `mpc-master-progress`：只读查看共享任务记录板中的活动任务或归档任务状态
+- `mpc-master-regress`：对已完成任务做可选的主控回归确认，并在确认后推进到 `已回归`
 - `mpc-master-archive`：把一个已回归任务从 `<repo-root>/.mpc/mpc.md` 移动到 `<repo-root>/.mpc/mpc_archive.md`
-- `mpc-slave`：在共享仓库目录中按显式任务名推进一个子任务的执行状态
+- `mpc-slave`：在共享仓库目录中按显式任务名推进一个已记录任务的执行状态与进度同步
 
 ## 仓库结构
 
@@ -60,19 +60,45 @@ https://github.com/luobote55/multi-phase-controller
 
 推荐做法：
 
-1. 如果要跑完整闭环，安装全部 5 个 skills。
+1. 如果要使用完整记录与治理能力，安装全部 5 个 skills。
 2. 推送后尽量不要改 skill 文件夹名，因为安装 URL 会直接使用文件夹 basename 作为 skill 名。
 3. 首次发布后至少验证一次 GitHub 安装 URL 是否可用。
 
 ## 使用说明
 
-1. 在目标项目仓库里准备一个需求或计划文档。
-2. 运行 `/mpc-master-start path/to/plan.md`，把子任务写入 `<repo-root>/.mpc/mpc.md`。
-3. 为首轮可执行任务分别打开独立对话，并运行 `/mpc-slave task_name`。
-4. 每个任务都在自己的对话里持续推进；需要刷新进度或建议完成时，再次运行 `/mpc-slave task_name`。
-5. 在主控会话中运行 `/mpc-master-progress`，查看总览或单任务详情。
-6. 当某个子任务进入 `完成` 后，运行 `/mpc-master-regress task_name`。
-7. 回归通过后，运行 `/mpc-master-archive task_name`。
+1. 在目标项目仓库里准备一份 GSD 计划文档或已经拆分好的任务列表。
+2. 运行 `/mpc-master-start path/to/plan.md`，把任务整理写入 `<repo-root>/.mpc/mpc.md`。
+3. 查看 `mpc-master-start` 的输出，它应按顺序给出：
+   - `本次新增任务清单`
+   - `最新任务树`
+   - `首轮可执行任务与 /mpc-slave 命令`
+4. 为首轮可执行任务分别打开独立对话，并运行 `/mpc-slave task_name`。
+5. 每个任务都在自己的对话里持续推进；需要刷新进度或建议完成时，再次运行 `/mpc-slave task_name`。
+6. 在主控会话中运行 `/mpc-master-progress`，查看总览或单任务详情。
+7. 如果你需要做可选的主控回归确认，再运行 `/mpc-master-regress task_name`。
+8. 如果任务已经回归通过且需要移出活动区，再运行 `/mpc-master-archive task_name`。
+
+## 提示词约束
+
+所有由 MPC skills 生成或展示给执行者的任务提示词，都应显式携带 GSD 能力前缀。
+
+- `开始提示词` 首句必须包含：`利用gsd skills的能力，实现需求：<需求摘要>`
+- `下一步提示词` 在自动生成或刷新后，也必须保留同样的前缀
+- `完成提示词` 必须明确说明结论基于利用 GSD skills 推进后的产出
+
+推荐模板：
+
+```text
+利用gsd skills的能力，实现需求：<需求摘要>。先确认边界与现状，再推进实现，并在过程中持续同步可用于更新 mpc.md 的进展信息。
+```
+
+```text
+利用gsd skills的能力，实现需求：<需求摘要>。结合当前已完成内容、剩余工作与阻塞项继续推进下一步，并准备同步最新进度。
+```
+
+```text
+基于利用gsd skills推进该任务后的产出，请确认是否已经满足需求：<需求摘要>；请给出完成依据、风险与是否可进入下一阶段的结论。
+```
 
 ## 运行时文件
 
@@ -84,11 +110,12 @@ https://github.com/luobote55/multi-phase-controller
 
 ## 其他建议
 
+- 把这个仓库当作 GSD 的辅助记录工具，而不是替代品。
 - 控制文件始终放在目标项目仓库根目录的 `.mpc/` 下。
 - 只让定义好的写入型 skills 修改 `<repo-root>/.mpc/` 下的文件。
 - 同一时刻只让一个对话推进一个任务。
-- 任务拆分要保守：只要涉及同文件、同核心模块、路由或注册表、依赖清单、生成产物、共享导出面，或存在明显顺序关系，就建模为串行任务而不是并行任务。
-- 把这个仓库当作 GSD 的补充，不要把它当成 GSD 的替代品。
+- 当源文档已经是 GSD 已拆分任务列表时，优先保留其顺序、粒度和语义，只做规范化录入。
+- 如果多个任务会改动同一文件、同一核心模块、依赖清单、生成产物、共享导出面，或存在明显顺序关系，就建模为串行任务而不是并行任务。
 - 不要把运行时生成的 `.mpc/` 状态文件混入已发布的 skill 源码；本仓库默认通过 `.gitignore` 忽略它。
 
 ## 发布说明
